@@ -1,0 +1,285 @@
+{
+  "name": "Refri-Lanes AI Assistant - Public Template",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a95fa93a-23ac-4a90-b5fb-a4fba1e9b61b",
+      "name": "When chat message received"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "IDENTIDADE\nVocê é o Refri-Lanes AI Assistant, assistente virtual da Refri-Lanes. Atenda visitantes com linguagem natural, cordial, objetiva e profissional, em português brasileiro.\n\nSERVIÇOS\n- Refrigeração: instalação, manutenção, limpeza e higienização de ar-condicionado, diagnóstico e reparos.\n- Elétrica residencial: instalações, disjuntores, quadros, manutenção e iluminação.\n- Higienização de estofados: sofás, colchões, poltronas, cadeiras e bancos automotivos.\n\nÁREA E CONTATO\nAtendimento na região metropolitana do Rio de Janeiro, sujeito à confirmação da equipe.\nWhatsApp comercial: (21) 97104-2888\nLink: https://wa.me/5521971042888\n\nATENDIMENTO\nPergunte somente o necessário para entender o serviço. Reaproveite informações já fornecidas; não invente preço, disponibilidade, agendamento, garantia ou diagnóstico técnico. Se houver risco elétrico, recomende não manusear equipamentos expostos. Para orçamento e confirmação, encaminhe para o WhatsApp comercial.\n\nCADASTRO DE CLIENTES\nAo receber um telefone, utilize a ferramenta Consultar cadastro de clientes para verificar registros anteriores. Use somente dados confirmados pelo cliente. Se ele solicitar cadastro ou fornecer dados para atualização, utilize a ferramenta Gravar ou atualizar cadastro. Use telefone como identificador, sem confundir com o ID da sessão. Não afirme que gravou ou encontrou dados sem confirmação da ferramenta. Evite substituir informações existentes por valores vazios. Pergunte novamente apenas aquilo que estiver faltando.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "dc6a9a31-e5d0-43bc-9d07-d22b1d984510",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        64,
+        208
+      ],
+      "id": "fa0e0af4-08a5-4c45-8c07-1eb1d6ee5f70",
+      "name": "Anthropic Chat Model"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        192,
+        208
+      ],
+      "id": "504bd66b-0de5-47c8-9e9c-84d85266960d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consultar um cadastro existente pelo telefone do cliente, retornando apenas os registros encontrados. Não altera dados.",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "SELECIONE_SUA_TABELA"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telefone",
+              "keyValue": "={{ $fromAI('telefone', 'Telefone informado pelo cliente para consulta do cadastro', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        192
+      ],
+      "id": "67b8e33d-2ab0-4387-98dc-8a6f2a4d57ab",
+      "name": "Consultar cadastro de clientes"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Cadastrar ou atualizar o cliente pelo telefone. Antes de gravar, verifique os dados informados; não sobrescreva dados confirmados com valores vazios. Use após consultar o cadastro.",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "SELECIONE_SUA_TABELA"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telefone",
+              "keyValue": "={{ $fromAI('telefone', 'Telefone do cliente para localizar o registro', 'string') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "telefone": "={{ $fromAI('telefone', 'Telefone/WhatsApp do cliente. Obrigatório para identificação.', 'string') }}",
+            "nome": "={{ $fromAI('nome', 'Nome informado pelo cliente. Não invente se ausente.', 'string') }}",
+            "cidade": "={{ $fromAI('cidade', 'Cidade confirmada pelo cliente.', 'string') }}",
+            "bairro": "={{ $fromAI('bairro', 'Bairro confirmado pelo cliente.', 'string') }}",
+            "equipamento": "={{ $fromAI('equipamento', 'Tipo e modelo do equipamento informado pelo cliente.', 'string') }}",
+            "local_instalacao": "={{ $fromAI('local_instalacao', 'Cômodo ou local da instalação informado pelo cliente.', 'string') }}",
+            "observarcoes": "={{ $fromAI('observacoes', 'Observações adicionais confirmadas pelo cliente.', 'string') }}",
+            "capacidade_btu": "={{ $fromAI('capacidade_btu', 'Capacidade em BTUs como número, caso informada pelo cliente.', 'number') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "telefone",
+              "displayName": "telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "cidade",
+              "displayName": "cidade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "bairro",
+              "displayName": "bairro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "equipamento",
+              "displayName": "equipamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "local_instalacao",
+              "displayName": "local_instalacao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "observarcoes",
+              "displayName": "observarcoes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "capacidade_btu",
+              "displayName": "capacidade_btu",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        96
+      ],
+      "id": "f7d72aa7-902e-4e45-a7e8-3fe52eeaf674",
+      "name": "Gravar ou atualizar cadastro"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar cadastro de clientes": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar ou atualizar cadastro": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
